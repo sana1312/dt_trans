@@ -3,7 +3,7 @@
 ## Decription
 - A transformer-based chemical language model(CLM) was implemented to generate dual-target compounds(DT-CPDs) from single-target compounds (ST-CPDs).
 - The CLM architecture from was adapted from [1].
-=======================================
+----------------------------------------------
 ## Usage
 Create environment 
 
