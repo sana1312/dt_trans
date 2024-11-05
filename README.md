@@ -2,7 +2,9 @@
 # Design of Dual-Target Compounds Using a Transformer Chemical Language Model    
 ## Decription
 - A transformer-based chemical language model(CLM) was implemented to generate dual-target compounds(DT-CPDs) from single-target compounds (ST-CPDs).
-- The CLM architecture from was adapted from [1].
+- The repository presents the code used in this publication [1].
+- The CLM architecture was adapted from [2].
+  
 ----------------------------------------------
 ## Usage
 Create environment 
@@ -47,10 +49,11 @@ python train.py --model-choice transformer --data-path <path_to_folder> --save-d
 Use the model saved at a given epoch to generate molecules for the given test file, and save the results. 
 
 ```
-python generate.py --model-choice transformer --data-path <path_to_folder> --test-file-name <test_file_name> --save-directory ... --model-path ... --epoch ...
+python generate.py --model-choice transformer --data-path <path_to_folder> --test-file-name <test_file_name> --model-path <path_to_model> --epoch <epoch_number>
 ```   
 
 ## References:
-1: Chen, H.; Vogt, M.; Bajorath, J. DeepAC – Conditional Transformer-Based Chemical Language Model for the Prediction of Activity Cliffs Formed by Bioactive Compounds. Digital Discovery 2022, 1, 898-909.
+(1) Srinivasan, S.; Bajorath, J. Generation of Dual-Target Compounds Using a Transformer Chemical Language Model. Cell Reports Physical Science 2024, 102255. https://doi.org/10.1016/j.xcrp.2024.102255.  
+(2)  Chen, H.; Vogt, M.; Bajorath, J. DeepAC – Conditional Transformer-Based Chemical Language Model for the Prediction of Activity Cliffs Formed by Bioactive Compounds. Digital Discovery 2022, 1, 898-909.
 
  
