@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from rdkit import Chem
 
 
 class TransformerAnalysis:
@@ -7,6 +8,7 @@ class TransformerAnalysis:
     def __init__(self, df):
         self.df = df
         self.DT_test_set = set(df['Target_Mol'])
+        self.DT_test_set = [Chem.CanonSmiles(smi) for smi in self.DT_test_set] # canonicalization
         self.predictions = self._extract_all_predictions()
 
     def _extract_all_predictions(self):
@@ -15,6 +17,7 @@ class TransformerAnalysis:
         for i in range(len(self.df)):
             row_preds = self._extract_predictions(self.df.iloc[i])
             all_pred.update(row_preds)
+            all_pred = [Chem.CanonSmiles(smi) for smi in all_pred]
         return all_pred
 
     def _extract_predictions(self, row):
@@ -66,6 +69,7 @@ class TransformerAnalysis:
         """
 
         DT_train_set = set(df_train['Target_Mol'])
+        DT_train_set = [Chem.CanonSmiles(smi) for smi in DT_train_set]
         novel_num = []
         novel_percent = []
 
