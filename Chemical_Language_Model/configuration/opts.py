@@ -14,6 +14,8 @@ def train_opts(parser):
                        help="Training from given starting epoch")
     group.add_argument('--cuda-device', type=int, default=0,
                        help='Specify the CUDA device to use')
+    group.add_argument('--validation-interval', type=int, default=1,
+                          help='Run validation every n epochs')
     
     # Input output settings
     group = parser.add_argument_group('Input-Output')

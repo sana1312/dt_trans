@@ -171,8 +171,8 @@ class TransformerTrainer(BaseTrainer):
         torch.save(save_dict, file_name)
 
     def train(self, opt):
-
         os.environ['CUDA_VISIBLE_DEVICES'] = str(opt.cuda_device)
+
         # Load vocabulary
         with open(os.path.join(opt.data_path, 'vocab.pkl'), "rb") as input_file:
             vocab = pkl.load(input_file)
@@ -180,20 +180,12 @@ class TransformerTrainer(BaseTrainer):
 
         # Data loader
         dataloader_train = self.initialize_dataloader(opt.data_path, opt.batch_size, vocab, 'train')
-        dataloader_validation = self.initialize_dataloader(opt.data_path, opt.batch_size, vocab, 'validation')
         device = torch.device('cuda')
 
-        '''
-        os.environ['CUDA_VISIBLE_DEVICES']='0'
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu" )
-        os.environ['CUDA_VISIBLE_DEVICES']='1'
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        '''
         model = self.get_model(opt, vocab, device)
         optim = self.get_optimization(model, opt)
-        model = torch.nn.DataParallel(model.cuda(),device_ids=[0])
+        model = torch.nn.DataParallel(model.cuda(), device_ids=[0])
 
-        #model = model.module
         pad_idx = cfgd.DATA_DEFAULT['padding_value']
         criterion = LabelSmoothing(size=len(vocab), padding_idx=pad_idx, smoothing=opt.label_smoothing)
 
@@ -201,32 +193,48 @@ class TransformerTrainer(BaseTrainer):
         for epoch in range(opt.starting_epoch, opt.starting_epoch + opt.num_epoch):
             self.LOG.info("Starting EPOCH #%d", epoch)
 
+            # Training step
             self.LOG.info("Training start")
             model.module.train()
-            loss_epoch_train = self.train_epoch(dataloader_train,
-                                                       model.module,
-                                                       SimpleLossCompute(
-                                                                 model.module.generator,
-                                                                 criterion,
-                                                                 optim), device)
-
+            loss_epoch_train = self.train_epoch(
+                dataloader_train,
+                model.module,
+                SimpleLossCompute(model.module.generator, criterion, optim),
+                device
+            )
             self.LOG.info("Training end")
+
+            # Log training loss every epoch
+            self.LOG.info(f"Training loss for epoch {epoch}: {loss_epoch_train}")
+            
+            # Save model after each epoch
             self.save(model.module, optim, epoch, vocab_size, opt)
 
-            self.LOG.info("Validation start")
-            model.module.eval()
-            loss_epoch_validation, accuracy = self.validation_stat(
-                dataloader_validation,
-                model.module,
-                SimpleLossCompute(
-                    model.module.generator, criterion, None),
-                device, vocab)
+            # Run validation and log its results every 'n' epochs
+            if (epoch + 1) % int(opt.validation_interval) == 0:
+                dataloader_validation = self.initialize_dataloader(opt.data_path, opt.batch_size, vocab, 'validation')
+                self.LOG.info("Validation start")
+                model.module.eval()
+                loss_epoch_validation, accuracy = self.validation_stat(
+                    dataloader_validation,
+                    model.module,
+                    SimpleLossCompute(model.module.generator, criterion, None),
+                    device,
+                    vocab
+                )
+                self.LOG.info("Validation end")
 
-
-            self.LOG.info("Validation end")
-
-            self.LOG.info(
-                "Train loss, Validation loss, accuracy: {}, {}, {}".format(loss_epoch_train, loss_epoch_validation,
-                                                                           accuracy))
-
-            self.to_tensorboard(loss_epoch_train, loss_epoch_validation, accuracy, epoch)
+                # Log both training and validation statistics every 'n' epochs
+                self.LOG.info(
+                    "Train loss, Validation loss, accuracy: {}, {}, {}".format(
+                        loss_epoch_train, loss_epoch_validation, accuracy
+                    )
+                )
+                # Tensorboard logging
+                self.to_tensorboard(loss_epoch_train, loss_epoch_validation, accuracy, epoch)
+            else:
+                # Log only training loss and skip validation statistics
+                self.LOG.info(
+                    "Epoch {}: Train loss: {}".format(epoch, loss_epoch_train)
+                )
+                self.LOG.info("Skipping validation for this epoch")
