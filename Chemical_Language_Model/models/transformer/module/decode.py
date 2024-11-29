@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from models.transformer.module.subsequent_mask import subsequent_mask
 
 
-def decode(model, src, src_mask, max_len, type):
+def decode(model, src, src_mask, max_len, type, temperature=1.0):
     ys = torch.ones(1)
     ys = ys.repeat(src.shape[0], 1).view(src.shape[0], 1).type_as(src.data)
     # ys shape [batch_size, 1]
@@ -16,6 +16,7 @@ def decode(model, src, src_mask, max_len, type):
                                       Variable(subsequent_mask(ys.size(1)).type_as(src.data)))
 
             log_prob = model.generator(out[:, -1])
+            log_prob = log_prob / temperature
             prob = torch.exp(log_prob)
 
             if type == 'greedy':

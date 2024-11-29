@@ -82,6 +82,8 @@ def generate_opts(parser):
                        help='Batch size for training')
     group.add_argument('--num-samples', type=int, default=50,
                        help='Number of molecules to be generated')
+    group.add_argument('--temperature', type=float, default=1.0,
+                       help='Temperature for sampling')
     group.add_argument('--decode-type',type=str, default='multinomial',help='decode strategy')
 
 

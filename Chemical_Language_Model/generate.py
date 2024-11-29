@@ -149,7 +149,7 @@ class GenerateRunner():
                 batch_size = src_current.shape[0]
 
                 # sample molecule
-                sequences = decode(model, src_current, mask_current, max_len, decode_type) # calling the decoder 
+                sequences = decode(model, src_current, mask_current, max_len, decode_type, opts.temp) # calling the decoder 
                 padding = (0, max_len-sequences.shape[1],
                             0, 0)
                 sequences = torch.nn.functional.pad(sequences, padding)
