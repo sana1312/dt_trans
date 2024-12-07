@@ -84,7 +84,8 @@ class GenerateRunner():
                                                                        opt.decode_type,
                                                                        num_samples=opt.num_samples,
                                                                        max_len=max_len,
-                                                                       device=device)  ## calling the sample function
+                                                                       device=device,
+                                                                       temperature=opt.temperature)  ## calling the sample function
 
             df_list.append(df)
             sampled_smiles_list.extend(smiles)
@@ -108,7 +109,7 @@ class GenerateRunner():
 
     def sample(self, model, src, src_mask, source_length, decode_type, num_samples=10, # num_samples=50 from opts - number of molecules to be generated
                max_len=cfgd.DATA_DEFAULT['max_sequence_length'],
-               device=None):
+               device=None, temperature=1.0):
         batch_size = src.shape[0] # batch size is the number of source molecules in the batch
         num_only_valid = np.zeros(batch_size)  
         num_valid_batch = np.zeros(batch_size)  # current number of unique and valid samples out of total sampled
@@ -149,7 +150,7 @@ class GenerateRunner():
                 batch_size = src_current.shape[0]
 
                 # sample molecule
-                sequences = decode(model, src_current, mask_current, max_len, decode_type, opts.temp) # calling the decoder 
+                sequences = decode(model, src_current, mask_current, max_len, decode_type, temperature=temperature) # calling the decoder 
                 padding = (0, max_len-sequences.shape[1],
                             0, 0)
                 sequences = torch.nn.functional.pad(sequences, padding)
