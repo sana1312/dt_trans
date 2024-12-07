@@ -11,8 +11,7 @@ def parse_args():
 
     parser.add_argument("--result-path", "-r", help=("Path to the results file"), type=str, required=True)
     parser.add_argument("--train-path", "-t", help=("Path to the training file"), type=str, required=True)
-    parser.add_argument("--save-directory", "-s", help=("Path to the save directory"), type=str, default='anaysis')
-    
+    parser.add_argument("--save-directory", "-s", help=("Path to the save directory"), type=str, default='analysis')
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -30,8 +29,7 @@ if __name__ == "__main__":
     unique_targ, count_reproduced, percentage_reproduced = analysis.overall_reproducibility()
     validity, uniqueness = analysis.average_validity_uniqueness()
     novel_predictions = analysis.novel_predictions(train)
-
-    analysis.df.to_csv(os.path.join(args.save_directory, 'analysis_results.csv'), index=False)
+    simillarity_df = analysis.calculate_tanimoto_similarity(train)
 
     # write the statistics to a file
     with open(os.path.join(args.save_directory, 'analysis.txt'), 'w') as f:
@@ -39,6 +37,8 @@ if __name__ == "__main__":
         f.write(f"Average Validity: {validity}%\n")
         f.write(f"Average Uniqueness: {uniqueness}%\n")
         f.write(f"Average Novelty: {novel_predictions}")
+
+    simillarity_df.to_csv(os.path.join(args.save_directory, 'similarity.tsv'), sep='\t', index=False)
 
     print(f"Overall Reproducibility: {count_reproduced}/{unique_targ} ({percentage_reproduced}%)")
     print(f"Average Validity: {validity}%")
