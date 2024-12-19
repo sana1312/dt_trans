@@ -97,7 +97,7 @@ class TransformerAnalysis:
         return: nearest_neighbor_similarity - Tanimoto similarity to the nearest neighbor in the training set.
         """
         # Generate fingerprints
-        m = [Chem.MolFromSmiles(smi) for smi in self.DT_test_set]
+        m = [Chem.MolFromSmiles(smi) for smi in self.predictions]
         fps = [AllChem.GetMorganFingerprintAsBitVect(m, 2, nBits=2048) for m in m if m]
         
         # Generate fingerprints for all training compounds
@@ -118,7 +118,7 @@ class TransformerAnalysis:
             average_similarity.append(avg_sim)
             nearest_neighbor_similarity.append(nn_sim)
         
-        sim_df = pd.DataFrame({'Generated_Molecule': list(self.DT_test_set),
+        sim_df = pd.DataFrame({'Generated_Molecule': list(self.predictions),
                                'Average_Similarity': average_similarity,
                                'Nearest_Neighbor_Similarity': nearest_neighbor_similarity,
                                'Nearest_Neighbor': nn_smiles})
