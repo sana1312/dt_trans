@@ -29,7 +29,7 @@ class TransformerTrainer(BaseTrainer):
                                           d_model=opt.d_model, d_ff=opt.d_ff, h=opt.H, dropout=opt.dropout)
         else:
             # Load model
-            file_name = os.path.join(self.save_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
+            file_name = os.path.join(opt.data_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
             model= EncoderDecoder.load_from_file(file_name)
         # move to GPU
         model.to(device)
@@ -56,7 +56,7 @@ class TransformerTrainer(BaseTrainer):
             optim = self._initialize_optimizer(model, opt)
         else:
             # load optimization
-            file_name = os.path.join(self.save_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
+            file_name = os.path.join(opt.data_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
             optim = self._load_optimizer_from_epoch(model, file_name)
         return optim
 
