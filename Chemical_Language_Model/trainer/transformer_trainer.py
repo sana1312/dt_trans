@@ -29,7 +29,7 @@ class TransformerTrainer(BaseTrainer):
                                           d_model=opt.d_model, d_ff=opt.d_ff, h=opt.H, dropout=opt.dropout)
         else:
             # Load model
-            file_name = os.path.join(self.save_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
+            file_name = os.path.join(opt.data_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
             model= EncoderDecoder.load_from_file(file_name)
         # move to GPU
         model.to(device)
@@ -43,7 +43,7 @@ class TransformerTrainer(BaseTrainer):
 
     def _load_optimizer_from_epoch(self, model, file_name):
         # load optimization
-        checkpoint = torch.load(file_name, map_location='cuda:0')
+        checkpoint = torch.load(file_name, map_location=lambda storage, loc: storage.cuda())
         optim_dict = checkpoint['optimizer_state_dict']
         optim = moptim(optim_dict['model_size'], optim_dict['factor'], optim_dict['warmup'],
                        torch.optim.Adam(model.parameters(), lr=0))
@@ -56,7 +56,7 @@ class TransformerTrainer(BaseTrainer):
             optim = self._initialize_optimizer(model, opt)
         else:
             # load optimization
-            file_name = os.path.join(self.save_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
+            file_name = os.path.join(opt.data_path, f'checkpoint/model_{opt.starting_epoch-1}.pt')
             optim = self._load_optimizer_from_epoch(model, file_name)
         return optim
 
@@ -171,7 +171,19 @@ class TransformerTrainer(BaseTrainer):
         torch.save(save_dict, file_name)
 
     def train(self, opt):
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(opt.cuda_device)
+
+        # Get device IDs from the user
+        device_ids = list(map(int, opt.cuda_device.split(',')))
+        print(f"Requested device IDs: {device_ids}")
+
+        # Set CUDA_VISIBLE_DEVICES if specified
+        os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, device_ids))
+        print(f"CUDA_VISIBLE_DEVICES set to: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
+
+        # Adjust device IDs for DataParallel (relative indexing)
+        device_ids = list(range(len(device_ids)))
+        print(f"Adjusted device IDs for DataParallel: {device_ids}")
+
 
         # Load vocabulary
         with open(os.path.join(opt.data_path, 'vocab.pkl'), "rb") as input_file:
@@ -182,9 +194,11 @@ class TransformerTrainer(BaseTrainer):
         dataloader_train = self.initialize_dataloader(opt.data_path, opt.batch_size, vocab, 'train')
         device = torch.device('cuda')
 
-        model = self.get_model(opt, vocab, device)
+        model = self.get_model(opt, vocab, device=torch.device('cuda'))
         optim = self.get_optimization(model, opt)
-        model = torch.nn.DataParallel(model.cuda(), device_ids=[0])
+        
+        # Wrap model with DataParallel
+        model = torch.nn.DataParallel(model, device_ids=device_ids).cuda()
 
         pad_idx = cfgd.DATA_DEFAULT['padding_value']
         criterion = LabelSmoothing(size=len(vocab), padding_idx=pad_idx, smoothing=opt.label_smoothing)
@@ -195,11 +209,11 @@ class TransformerTrainer(BaseTrainer):
 
             # Training step
             self.LOG.info("Training start")
-            model.module.train()
+            model.train() 
             loss_epoch_train = self.train_epoch(
                 dataloader_train,
-                model.module,
-                SimpleLossCompute(model.module.generator, criterion, optim),
+                model,  
+                SimpleLossCompute(model.module.generator, criterion, optim), 
                 device
             )
             self.LOG.info("Training end")
@@ -208,16 +222,16 @@ class TransformerTrainer(BaseTrainer):
             self.LOG.info(f"Training loss for epoch {epoch}: {loss_epoch_train}")
             
             # Save model after each epoch
-            self.save(model.module, optim, epoch, vocab_size, opt)
+            self.save(model, optim, epoch, vocab_size, opt)
 
             # Run validation and log its results every 'n' epochs
             if (epoch + 1) % int(opt.validation_interval) == 0:
                 dataloader_validation = self.initialize_dataloader(opt.data_path, opt.batch_size, vocab, 'validation')
                 self.LOG.info("Validation start")
-                model.module.eval()
+                model.eval() 
                 loss_epoch_validation, accuracy = self.validation_stat(
                     dataloader_validation,
-                    model.module,
+                    model.module, 
                     SimpleLossCompute(model.module.generator, criterion, None),
                     device,
                     vocab

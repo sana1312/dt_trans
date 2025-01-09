@@ -12,8 +12,8 @@ def train_opts(parser):
                        help='Number of training steps')
     group.add_argument('--starting-epoch', type=int, default=1,
                        help="Training from given starting epoch")
-    group.add_argument('--cuda-device', type=int, default=0,
-                       help='Specify the CUDA device to use')
+    group.add_argument('--cuda-device', type=str, default="0",
+                       help='Specify the CUDA devices to use, separated by commas (e.g., "0,1,2").')
     group.add_argument('--validation-interval', type=int, default=1,
                           help='Run validation every n epochs')
     
