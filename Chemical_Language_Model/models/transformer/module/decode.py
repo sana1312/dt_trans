@@ -8,13 +8,13 @@ def decode(model, src, src_mask, max_len, type, temperature=1.0):
     ys = torch.ones(1)
     ys = ys.repeat(src.shape[0], 1).view(src.shape[0], 1).type_as(src.data)
     # ys shape [batch_size, 1]
-    encoder_outputs = model.encode(src, src_mask)
+    encoder_outputs = model.encode(src, src_mask) # The source is sent to the encoder and we get the encoder outputs or encoded vectors
     break_condition = torch.zeros(src.shape[0], dtype=torch.bool)
     for i in range(max_len-1):
         with torch.no_grad():
-            out = model.decode(encoder_outputs, src_mask, Variable(ys),
+            out = model.decode(encoder_outputs, src_mask, Variable(ys),             
                                       Variable(subsequent_mask(ys.size(1)).type_as(src.data)))
-
+        
             log_prob = model.generator(out[:, -1])
             log_prob = log_prob / temperature
             prob = torch.exp(log_prob)

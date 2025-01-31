@@ -70,8 +70,8 @@ def generate_opts(parser):
     group.add_argument('--test-file-name', required=True, help="""test file name without .csv""")
     group.add_argument('--save-directory', default='evaluation',
                        help="""Result save directory""")
-    group.add_argument('--cuda-device', type=int, default=0,
-                       help='Specify the CUDA device to use')
+    group.add_argument('--cuda-device', type=str, default="0",
+                       help='Specify the CUDA devices to use, separated by commas (e.g., "0,1,2").')
     # Model to be used for generating molecules
     group = parser.add_argument_group('Model')
     group.add_argument('--model-path', help="""Model path""", required=True)

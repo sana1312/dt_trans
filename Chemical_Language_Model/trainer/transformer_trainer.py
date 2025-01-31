@@ -159,11 +159,18 @@ class TransformerTrainer(BaseTrainer):
         """
         Saves the model, optimizer and model hyperparameters
         """
-        save_dict = {
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optim.save_state_dict(),
-            'model_parameters': self._get_model_parameters(vocab_size, opt)
-        }
+        if isinstance(model, torch.nn.DataParallel):
+            save_dict = {
+                'model_state_dict': model.module.state_dict(),
+                'optimizer_state_dict': optim.save_state_dict(),
+                'model_parameters': self._get_model_parameters(vocab_size, opt)
+            }
+        else:
+            save_dict = {
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optim.save_state_dict(),
+                'model_parameters': self._get_model_parameters(vocab_size, opt)
+            }
 
         file_name = os.path.join(self.save_path, f'checkpoint/model_{epoch}.pt')
         uf.make_directory(file_name, is_dir=False)

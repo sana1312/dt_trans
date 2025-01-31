@@ -13,9 +13,21 @@ import configuration.config_default as cfgd
 import models.dataset as md
 import preprocess.vocabulary as mv
 import configuration.opts as opts
+from torch.multiprocessing import Process, Manager
+import torch.multiprocessing as mp
 from models.transformer.module.decode import decode
 from models.transformer.encode_decode.model import EncoderDecoder
 
+def split_batches(dataloader, num_gpus):
+    """
+    Split batches for multiple GPUs
+    :param dataloader: dataloader
+    :param num_gpus: number of GPUs
+    :return: list of batches 
+    """
+    batches = list(dataloader)
+    split_size = len(batches) // num_gpus
+    return [batches[i * split_size: (i + 1) * split_size] for i in range(num_gpus)]
 
 class GenerateRunner():
 
@@ -35,7 +47,7 @@ class GenerateRunner():
         self.vocab = vocab
         self.tokenizer = mv.SMILESTokenizer()
 
-    def initialize_dataloader(self, opt, vocab, test_file):
+    def initialize_dataloader(self, opt, vocab, test_file, device_ids):
         """
         Initialize dataloader
         :param opt:
@@ -48,35 +60,17 @@ class GenerateRunner():
         data = pd.read_csv(os.path.join(opt.data_path, test_file + '.csv'), sep=",")
         dataset = md.Dataset(data=data, vocabulary=vocab, tokenizer=self.tokenizer, prediction_mode=True)
         dataloader = torch.utils.data.DataLoader(dataset, opt.batch_size,
-                                                 shuffle=False, collate_fn=md.Dataset.collate_fn)
+                                                 shuffle=False, collate_fn=md.Dataset.collate_fn,
+                                                 num_workers=len(device_ids) * 2,
+                                                 pin_memory=True)
         return dataloader
-
-    def generate(self, opt):
-
-        # set device
-        #device = ut.allocate_gpu()
-        device = torch.device('cuda')
-        # Data loader
-        dataloader_test = self.initialize_dataloader(opt, self.vocab, opt.test_file_name)
-        total_count = []
-        valid_count = []
-
-        # Load model
-        file_name = os.path.join(opt.model_path, f'model_{opt.epoch}.pt')
-        
-        model = EncoderDecoder.load_from_file(file_name)
+    
+    def process_batches(self, device_id, batches, model, opt, max_len, df_list, smiles_list, total_count, valid_count):
+        device = f"cuda:{device_id}"
         model.to(device)
         model.eval()
-        max_len = cfgd.DATA_DEFAULT['max_sequence_length']
-        df_list = []
-        sampled_smiles_list = []
-
-        for j, batch in enumerate(ul.progress_bar(dataloader_test, total=len(dataloader_test))): # for each batch
-            ## the test data is divided into batches
-            ## so, src contains src molecules in the batch, if batch size is 32, then src will contain 32 molecules
+        for i,batch in enumerate(ul.progress_bar(batches, total=len(batches))):
             src, source_length, _, src_mask, _, _, df = batch
-
-            # Move to GPU
             src = src.to(device)
             src_mask = src_mask.to(device)
             smiles, total, only_valid = self.sample(model, src, src_mask,
@@ -85,13 +79,66 @@ class GenerateRunner():
                                                                        num_samples=opt.num_samples,
                                                                        max_len=max_len,
                                                                        device=device,
-                                                                       temperature=opt.temperature)  ## calling the sample function
-
+                                                                       temperature=opt.temperature)
             df_list.append(df)
-            sampled_smiles_list.extend(smiles)
+            smiles_list.extend(smiles)
             total_count.extend(total)
             valid_count.extend(only_valid)
+        
 
+    def generate(self, opt):
+
+        # Get device IDs from the user
+        device_ids = list(map(int, opt.cuda_device.split(',')))
+        print(f"Requested device IDs: {device_ids}")
+
+        # Set CUDA_VISIBLE_DEVICES if specified
+        os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, device_ids))
+        print(f"CUDA_VISIBLE_DEVICES set to: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
+
+        # Adjust device IDs for DataParallel (relative indexing)
+        device_ids = list(range(len(device_ids)))
+        print(f"Adjusted device IDs for DataParallel: {device_ids}")
+
+        # Data loader
+        dataloader_test = self.initialize_dataloader(opt, self.vocab, opt.test_file_name, device_ids)
+        total_count = []
+        valid_count = []
+
+        # Load model
+        
+        file_name = os.path.join(opt.model_path, f'model_{opt.epoch}.pt')
+        
+        model = EncoderDecoder.load_from_file(file_name)
+
+        max_len = cfgd.DATA_DEFAULT['max_sequence_length']
+        df_list = []
+        sampled_smiles_list = []
+
+        batches_ = split_batches(dataloader_test, len(device_ids))
+        manager = Manager()
+        shared_df_list = manager.list()
+        shared_smiles_list = manager.list()
+        shared_total_count = manager.list()
+        shared_valid_count = manager.list()
+
+        # Launch processes
+        processes = []
+        for i, device_id in enumerate(device_ids):
+            p = Process(target=self.process_batches, args=(device_id, batches_[i], model, opt, max_len, 
+                                                           shared_df_list, shared_smiles_list, shared_total_count, shared_valid_count))
+            p.start()
+            processes.append(p)
+
+        # Wait for all processes to finish
+        for p in processes:
+            p.join()
+
+            df_list = list(shared_df_list)
+            sampled_smiles_list = list(shared_smiles_list)
+            total_count = list(shared_total_count)
+            valid_count = list(shared_valid_count)
+            
         # prepare dataframe
         data_sorted = pd.concat(df_list)
         sampled_smiles_list = np.array(sampled_smiles_list)
@@ -151,6 +198,7 @@ class GenerateRunner():
 
                 # sample molecule
                 sequences = decode(model, src_current, mask_current, max_len, decode_type, temperature=temperature) # calling the decoder 
+
                 padding = (0, max_len-sequences.shape[1],
                             0, 0)
                 sequences = torch.nn.functional.pad(sequences, padding)
@@ -210,11 +258,12 @@ def run_main():
 
     opts.generate_opts(parser)
     opt = parser.parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.cuda_device)
-
     runner = GenerateRunner(opt)
     runner.generate(opt)
 
 
 if __name__ == "__main__":
+    # Set up multiprocessing start method to spawn
+    mp.set_start_method('spawn', force=True) # for subprocessing to star t CUDA in clean state
+    mp.set_sharing_strategy('file_system')
     run_main()

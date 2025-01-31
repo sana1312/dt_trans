@@ -18,6 +18,5 @@ class SimpleLossCompute:
             loss.backward()
             self.opt.step()
             self.opt.optimizer.zero_grad()
-       # print("loss from simplelosscompute:",loss)
-       # print("norm from simplelosscompute:",norm)
+ 
         return loss.data * norm
