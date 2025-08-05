@@ -51,14 +51,14 @@ class Vocabulary:
         return len(self._tokens) // 2
 
     def encode(self, tokens):
-        """Encodes a list of tokens, encoding them in 1-hot encoded vectors."""
+        """Encodes a list of tokens, encoding them in 1-hot encoded vectors.""" ## no one-hot encoding, just indices
         ohe_vect = np.zeros(len(tokens), dtype=np.float32)
         for i, token in enumerate(tokens):
             ohe_vect[i] = self._tokens[token]
         return ohe_vect
 
     def decode(self, ohe_vect):
-        """Decodes a one-hot encoded vector matrix to a list of tokens."""
+        """Decodes a one-hot encoded vector matrix to a list of tokens.""" 
         tokens = []
         for ohv in ohe_vect:
             tokens.append(self[ohv])
@@ -83,8 +83,8 @@ class SMILESTokenizer:
     """Deals with the tokenization and untokenization of SMILES."""
 
     REGEXPS = {
-        "brackets": re.compile(r"(\[[^\]]*\])"),
-        "2_ring_nums": re.compile(r"(%\d{2})"),
+        "brackets": re.compile(r"(\[[^\]]*\])"),  #[...] e.g., [nH], [N+], [O-], etc.
+        "2_ring_nums": re.compile(r"(%\d{2})"), # %xx e.g., %1, %2, etc - complex ring closures (see buckyball fullerenes)
         "brcl": re.compile(r"(Br|Cl)")
     }
     REGEXP_ORDER = ["brackets", "2_ring_nums", "brcl"]
@@ -93,20 +93,20 @@ class SMILESTokenizer:
         """Tokenizes a SMILES string."""
         def split_by(data, regexps):
             if not regexps:
-                return list(data)
+                return list(data)  # no more regexps, return as list of characters
             regexp = self.REGEXPS[regexps[0]]
             splitted = regexp.split(data)
             tokens = []
             for i, split in enumerate(splitted):
                 if i % 2 == 0:
-                    tokens += split_by(split, regexps[1:])
+                    tokens += split_by(split, regexps[1:]) # recursively split the rest
                 else:
                     tokens.append(split)
             return tokens
 
         tokens = split_by(data, self.REGEXP_ORDER)
         if with_begin_and_end:
-            tokens = ["^"] + tokens + ["$"]
+            tokens = ["^"] + tokens + ["$"] # add start and end tokens
         return tokens
 
     def untokenize(self, tokens):
@@ -130,3 +130,4 @@ def create_vocabulary(smiles_list, tokenizer):
     vocabulary.update(["*", "^", "$"] + sorted(tokens))  # pad=0, start=1, end=2
 
     return vocabulary
+
