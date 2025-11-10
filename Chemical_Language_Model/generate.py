@@ -8,7 +8,7 @@ import torch
 import utils.chem as uc
 import utils.torch_util as ut
 import utils.log as ul
-import utils.plot as up
+#import utils.plot as up
 import configuration.config_default as cfgd
 import models.dataset as md
 import preprocess.vocabulary as mv
@@ -17,6 +17,9 @@ from torch.multiprocessing import Process, Manager
 import torch.multiprocessing as mp
 from models.transformer.module.decode import decode
 from models.transformer.encode_decode.model import EncoderDecoder
+
+import warnings
+warnings.filterwarnings('ignore')
 
 def split_batches(dataloader, num_gpus):
     """
@@ -35,13 +38,15 @@ class GenerateRunner():
 
         self.save_path = os.path.join(opt.save_directory, opt.test_file_name,
                                       f'evaluation_{opt.epoch}')
-        global LOG
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path)
+        # global LOG
         LOG = ul.get_logger(name="generate",
                             log_path=os.path.join(self.save_path, 'generate.log'))
         LOG.info(opt)
         LOG.info("Save directory: {}".format(self.save_path))
 
-        # Load vocabulary
+        #Load vocabulary
         with open(os.path.join(opt.data_path, 'vocab.pkl'), "rb") as input_file:
             vocab = pkl.load(input_file)
         self.vocab = vocab
@@ -80,6 +85,7 @@ class GenerateRunner():
                                                                        max_len=max_len,
                                                                        device=device,
                                                                        temperature=opt.temperature)
+            print('len of df: ', len(df))
             df_list.append(df)
             smiles_list.extend(smiles)
             total_count.extend(total)
@@ -140,6 +146,7 @@ class GenerateRunner():
             valid_count = list(shared_valid_count)
             
         # prepare dataframe
+        print('len of df_list: ', len(df_list))
         data_sorted = pd.concat(df_list)
         sampled_smiles_list = np.array(sampled_smiles_list)
 
@@ -151,7 +158,7 @@ class GenerateRunner():
 
         # Save generated molecules
         result_path = os.path.join(self.save_path, "generated_molecules.csv")
-        LOG.info("Save to {}".format(result_path))
+        # LOG.info("Save to {}".format(result_path))
         data_sorted.to_csv(result_path, index=False)
 
     def sample(self, model, src, src_mask, source_length, decode_type, num_samples=10, # num_samples=50 from opts - number of molecules to be generated
@@ -170,7 +177,7 @@ class GenerateRunner():
         # zeros correspondes to ****** which is valid according to RDKit
         sequences_all = torch.ones((num_samples, batch_size, max_len))
         sequences_all = sequences_all.type(torch.LongTensor)
-        max_trials = 100  # Maximum trials for sampling
+        max_trials = 500  # Maximum trials for sampling
         current_trials = 0
 
         if decode_type == 'greedy':

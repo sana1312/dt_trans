@@ -84,6 +84,13 @@ class TransformerTrainer(BaseTrainer):
             loss = loss_compute(out, trg_y, ntokens)
             total_tokens += ntokens
             total_loss += float(loss)
+            ## get the attention weights and write to a pickle file
+            cross_attn = model.module.decoder.layers[-1].src_attn.attn
+            attn_path = os.path.join(self.save_path, 'attention.pkl')
+            with open(attn_path, 'wb') as attn_file:
+                pkl.dump(cross_attn, attn_file)
+            
+            
 
         loss_epoch = total_loss / total_tokens
 

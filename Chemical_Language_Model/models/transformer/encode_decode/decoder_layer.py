@@ -25,4 +25,3 @@ class DecoderLayer(nn.Module):
             x, m, m, src_mask))
 
         return self.sublayer[2](x, self.feed_forward)
-
