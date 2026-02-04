@@ -106,7 +106,7 @@ class GenerateRunner():
         LOG.info("Save to {}".format(result_path))
         data_sorted.to_csv(result_path, index=False)
 
-    def sample(self, model, src, src_mask, source_length, decode_type, num_samples=10, # num_samples=50 from opts - number of molecules to be generated
+    def sample(self, model, src, src_mask, source_length, decode_type, num_samples=50, # from opts - number of molecules to be generated
                max_len=cfgd.DATA_DEFAULT['max_sequence_length'],
                device=None):
         batch_size = src.shape[0] # batch size is the number of source molecules in the batch
