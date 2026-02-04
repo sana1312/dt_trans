@@ -1,4 +1,4 @@
-name: dt_trans
+name: tt_trans
 channels:
   - rdkit
   - pytorch
