@@ -1,9 +1,10 @@
   
-# Design of Dual-Target Compounds Using a Transformer Chemical Language Model    
+# Chemical language models for generating compounds with triple-target activity    
 ## Decription
-- A transformer-based chemical language model(CLM) was implemented to generate dual-target compounds(DT-CPDs) from single-target compounds (ST-CPDs).
+- Dual-target pre-training of a transformer model followed by triple-target fine-tuning to generate triple-target candidate compounds.
 - The repository presents the code used in this publication[^1].
-- The CLM architecture was adapted from[^2], which modified the original code from [deep-molecular-optimization](https://github.com/MolecularAI/deep-molecular-optimization)
+- Dual-target pre-training adapted from [^2].
+- The CLM architecture was adapted from[^3], which modified the original code from [deep-molecular-optimization](https://github.com/MolecularAI/deep-molecular-optimization)
 
 ----------------------------------------------
 ## Usage
@@ -11,7 +12,7 @@ Create environment
 
 ```
 conda env create -f environment.yml
-conda activate dt_trans
+conda activate tt_trans
 ```
 ---------------------------------------------
 
@@ -26,7 +27,7 @@ python preprocess.py --input-data-folder <path_to_folder> --data-file-name <file
 
 Example usage,
 ```
-python preprocess.py --input-data-folder data --data-file-name ST_DT_data.csv
+python preprocess.py --input-data-folder data --data-file-name ST_TT_data.csv
 ```
 
 
@@ -50,10 +51,20 @@ Use the model saved at a given epoch to generate molecules for the given test fi
 
 ```
 python generate.py --model-choice transformer --data-path <path_to_folder> --test-file-name <test_file_name> --model-path <path_to_model> --epoch <epoch_number>
-```   
+```
+----------------------------------------------
+**Main packages**
+pandas-1.0.0
+numpy-1.17.3
+pytorch-1.4.0
+rdkit-2020.03.2.0
+scikit-learn-0.21.3
+tensorboardx-2.0
+----------------------------------------------
 
 ## References:
-[^1]: Srinivasan, S.; Bajorath, J. Generation of Dual-Target Compounds Using a Transformer Chemical Language Model. Cell Reports Physical Science 2024, 102255. https://doi.org/10.1016/j.xcrp.2024.102255.  
-[^2]:  Chen, H.; Vogt, M.; Bajorath, J. DeepAC – Conditional Transformer-Based Chemical Language Model for the Prediction of Activity Cliffs Formed by Bioactive Compounds. Digital Discovery 2022, 1, 898-909.
+[^1]: Srinivasan, S., and Bajorath, J. (2026). Chemical language models for generating compounds with triple-target activity. Cell Reports Physical Science 7, 103054. https://doi.org/10.1016/j.xcrp.2025.103054. 
+[^2]: Srinivasan, S., and Bajorath, J. (2025). Protocol to generate dual-target compounds using a transformer chemical language model. STAR Protocols 6, 103584. https://doi.org/10.1016/j.xpro.2024.103584.
+[^3]:  Chen, H.; Vogt, M.; Bajorath, J. DeepAC – Conditional Transformer-Based Chemical Language Model for the Prediction of Activity Cliffs Formed by Bioactive Compounds. Digital Discovery 2022, 1, 898-909.
 
  
