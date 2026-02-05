@@ -54,14 +54,18 @@ python generate.py --model-choice transformer --data-path <path_to_folder> --tes
 ```
 ----------------------------------------------
 **Main packages**
-pandas-1.0.0
-numpy-1.17.3
-pytorch-1.4.0
-rdkit-2020.03.2.0
-scikit-learn-0.21.3
-tensorboardx-2.0
+- pandas-1.0.0
+- numpy-1.17.3
+- pytorch-1.4.0
+- rdkit-2020.03.2.0
+- scikit-learn-0.21.3
+- tensorboardx-2.0
 ----------------------------------------------
+#### Pretrained model
+The pretrained model and the vocab file can be found under:  
+Releases -> v.02 -> pretrained_model.zip
 
+----------------------------------------------
 ## References:
 [^1]: Srinivasan, S., and Bajorath, J. (2026). Chemical language models for generating compounds with triple-target activity. Cell Reports Physical Science 7, 103054. https://doi.org/10.1016/j.xcrp.2025.103054. 
 [^2]: Srinivasan, S., and Bajorath, J. (2025). Protocol to generate dual-target compounds using a transformer chemical language model. STAR Protocols 6, 103584. https://doi.org/10.1016/j.xpro.2024.103584.
